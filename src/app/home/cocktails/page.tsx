@@ -116,7 +116,7 @@ export default function CocktailsPage() {
         {selected && (
           <div className="p-5 space-y-5">
             {selected.image_url && (
-              <img src={selected.image_url} alt={selected.name} className="w-full h-48 object-cover rounded-xl" />
+              <img src={selected.image_url} alt={selected.name} className="w-full aspect-square object-cover rounded-xl" />
             )}
 
             {/* Method & Garnish badges */}

@@ -325,7 +325,7 @@ export default function ManagementPage() {
                 <img
                   src={formImageUrl}
                   alt="Preview"
-                  className="w-full h-48 object-cover rounded-xl border border-border"
+                  className="w-full aspect-square object-cover rounded-xl border border-border"
                 />
                 <div className="absolute bottom-2 right-2 flex gap-2">
                   <button
