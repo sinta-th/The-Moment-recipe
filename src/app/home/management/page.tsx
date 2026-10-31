@@ -7,7 +7,7 @@ import { supabase, BatchingRecipe, CocktailRecipe, BatchingIngredient, CocktailI
 import { Lang, getLang, translate } from '@/lib/lang'
 import Modal from '@/components/Modal'
 import ImageCropper from '@/components/ImageCropper'
-import { ArrowLeft, Plus, Pencil, Trash2, Beaker, Wine, X, ImagePlus, Loader2 } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Trash2, Beaker, Wine, X, ImagePlus, Loader2, Copy, Check } from 'lucide-react'
 
 type Tab = 'batching' | 'cocktail'
 
@@ -16,6 +16,26 @@ interface IngredientInput {
   amount_ml: string
   unit: IngredientUnit
 }
+
+interface BulkFormData {
+  name: string
+  category: RecipeCategory | ''
+  method: RecipeMethod | ''
+  garnish: string
+  ingredients: IngredientInput[]
+  instructions: string
+  notes: string
+}
+
+const emptyBulkForm = (): BulkFormData => ({
+  name: '',
+  category: '',
+  method: '',
+  garnish: '',
+  ingredients: [{ name: '', amount_ml: '', unit: 'ml' }],
+  instructions: '',
+  notes: '',
+})
 
 export default function ManagementPage() {
   const [tab, setTab] = useState<Tab>('batching')
@@ -40,6 +60,13 @@ export default function ManagementPage() {
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Bulk add state
+  const [showBulkForm, setShowBulkForm] = useState(false)
+  const [bulkForms, setBulkForms] = useState<BulkFormData[]>(() => Array.from({ length: 6 }, emptyBulkForm))
+  const [bulkActiveTab, setBulkActiveTab] = useState(0)
+  const [bulkSaving, setBulkSaving] = useState(false)
+  const [bulkSavedCount, setBulkSavedCount] = useState<number | null>(null)
 
   const router = useRouter()
 
@@ -219,6 +246,114 @@ export default function ManagementPage() {
     setFormIngredients(formIngredients.filter((_, i) => i !== idx))
   }
 
+  // Bulk form helpers
+  const resetBulkForm = () => {
+    setBulkForms(Array.from({ length: 6 }, emptyBulkForm))
+    setBulkActiveTab(0)
+    setBulkSavedCount(null)
+    setShowBulkForm(false)
+  }
+
+  const updateBulkForm = (idx: number, field: keyof BulkFormData, value: unknown) => {
+    setBulkForms(prev => {
+      const updated = [...prev]
+      updated[idx] = { ...updated[idx], [field]: value }
+      return updated
+    })
+  }
+
+  const updateBulkIngredient = (formIdx: number, ingIdx: number, field: keyof IngredientInput, value: string) => {
+    setBulkForms(prev => {
+      const updated = [...prev]
+      const ings = [...updated[formIdx].ingredients]
+      if (field === 'unit') {
+        ings[ingIdx] = { ...ings[ingIdx], unit: value as IngredientUnit }
+      } else {
+        ings[ingIdx] = { ...ings[ingIdx], [field]: value }
+      }
+      updated[formIdx] = { ...updated[formIdx], ingredients: ings }
+      return updated
+    })
+  }
+
+  const addBulkIngredientRow = (formIdx: number) => {
+    setBulkForms(prev => {
+      const updated = [...prev]
+      updated[formIdx] = {
+        ...updated[formIdx],
+        ingredients: [...updated[formIdx].ingredients, { name: '', amount_ml: '', unit: 'ml' }],
+      }
+      return updated
+    })
+  }
+
+  const removeBulkIngredientRow = (formIdx: number, ingIdx: number) => {
+    setBulkForms(prev => {
+      const updated = [...prev]
+      updated[formIdx] = {
+        ...updated[formIdx],
+        ingredients: updated[formIdx].ingredients.filter((_, i) => i !== ingIdx),
+      }
+      return updated
+    })
+  }
+
+  const saveBulkRecipes = async () => {
+    const filledForms = bulkForms.filter(f => f.name.trim())
+    if (filledForms.length === 0) return
+
+    setBulkSaving(true)
+    const recipeTable = tab === 'batching' ? 'batching_recipes' : 'cocktail_recipes'
+    const ingTable = tab === 'batching' ? 'batching_ingredients' : 'cocktail_ingredients'
+
+    let savedCount = 0
+
+    for (const form of filledForms) {
+      const recipeData: Record<string, unknown> = {
+        name: form.name.trim(),
+        category: form.category || null,
+        method: form.method || null,
+        instructions: form.instructions.trim() || null,
+        notes: form.notes.trim() || null,
+        updated_at: new Date().toISOString(),
+      }
+
+      if (tab === 'cocktail') {
+        recipeData.garnish = form.garnish.trim() || null
+      }
+
+      const { data } = await supabase.from(recipeTable).insert(recipeData).select('id').single()
+
+      if (data?.id) {
+        const validIngs = form.ingredients.filter(i => i.name.trim() && i.amount_ml)
+        if (validIngs.length > 0) {
+          await supabase.from(ingTable).insert(
+            validIngs.map((i, idx) => ({
+              recipe_id: data.id,
+              name: i.name.trim(),
+              amount_ml: parseFloat(i.amount_ml),
+              unit: i.unit,
+              sort_order: idx,
+            }))
+          )
+        }
+        savedCount++
+      }
+    }
+
+    setBulkSaving(false)
+    setBulkSavedCount(savedCount)
+    fetchAll()
+
+    // Auto close after showing result
+    setTimeout(() => {
+      resetBulkForm()
+    }, 1500)
+  }
+
+  const bulkFormHasData = (form: BulkFormData) => form.name.trim().length > 0
+  const filledBulkCount = bulkForms.filter(bulkFormHasData).length
+
   const updateIngredient = (idx: number, field: keyof IngredientInput, value: string) => {
     const updated = [...formIngredients]
     if (field === 'unit') {
@@ -241,13 +376,22 @@ export default function ManagementPage() {
             </button>
             <h1 className="text-lg font-semibold text-text-primary">{T('management.title')}</h1>
           </div>
-          <button
-            onClick={() => { resetForm(); setShowForm(true) }}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-accent text-white text-sm font-medium hover:bg-accent-hover transition-colors"
-          >
-            <Plus size={16} />
-            {T('management.add')}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setBulkForms(Array.from({ length: 6 }, emptyBulkForm)); setBulkActiveTab(0); setBulkSavedCount(null); setShowBulkForm(true) }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-accent text-accent text-sm font-medium hover:bg-accent-light transition-colors"
+            >
+              <Copy size={14} />
+              {T('bulk.add')}
+            </button>
+            <button
+              onClick={() => { resetForm(); setShowForm(true) }}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-accent text-white text-sm font-medium hover:bg-accent-hover transition-colors"
+            >
+              <Plus size={16} />
+              {T('management.add')}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -496,6 +640,192 @@ export default function ManagementPage() {
             {saving ? T('management.saving') : editingId ? T('management.save.edit') : T('management.add')}
           </button>
         </form>
+      </Modal>
+
+      {/* Bulk Add Modal */}
+      <Modal isOpen={showBulkForm} onClose={resetBulkForm} title={`${T('bulk.add')} - ${tab === 'batching' ? 'Batching' : 'Cocktail'}`}>
+        <div className="flex flex-col" style={{ maxHeight: '80vh' }}>
+          {/* Tab numbers */}
+          <div className="flex gap-1.5 px-4 pt-4 pb-2 overflow-x-auto">
+            {bulkForms.map((form, idx) => (
+              <button
+                key={idx}
+                onClick={() => setBulkActiveTab(idx)}
+                className={`relative min-w-[44px] h-10 rounded-xl text-sm font-semibold transition-all ${
+                  bulkActiveTab === idx
+                    ? 'bg-accent text-white shadow-md'
+                    : bulkFormHasData(form)
+                    ? 'bg-success/15 text-success border border-success/30'
+                    : 'bg-bg-secondary text-text-muted hover:bg-bg-primary'
+                }`}
+              >
+                {bulkFormHasData(form) && bulkActiveTab !== idx && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-success rounded-full flex items-center justify-center">
+                    <Check size={10} className="text-white" />
+                  </span>
+                )}
+                {idx + 1}
+              </button>
+            ))}
+          </div>
+
+          {/* Active form */}
+          <div className="flex-1 overflow-y-auto px-4 pb-4">
+            {(() => {
+              const form = bulkForms[bulkActiveTab]
+              const fi = bulkActiveTab
+              return (
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <label className="block text-xs font-medium text-text-secondary mb-1">{T('management.recipe.name')} *</label>
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={(e) => updateBulkForm(fi, 'name', e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl bg-bg-primary border border-border text-text-primary text-sm focus:outline-none focus:border-accent"
+                      placeholder={`${T('bulk.recipe')} ${fi + 1}`}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-text-secondary mb-1">{T('category.label')}</label>
+                      <select
+                        value={form.category}
+                        onChange={(e) => updateBulkForm(fi, 'category', e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-bg-primary border border-border text-text-primary text-sm focus:outline-none focus:border-accent"
+                      >
+                        <option value="">{T('category.select')}</option>
+                        {CATEGORIES.map((cat) => (
+                          <option key={cat} value={cat}>{T(`category.${cat}` as Parameters<typeof translate>[0])}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-text-secondary mb-1">{T('method.label')}</label>
+                      <select
+                        value={form.method}
+                        onChange={(e) => updateBulkForm(fi, 'method', e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-bg-primary border border-border text-text-primary text-sm focus:outline-none focus:border-accent"
+                      >
+                        <option value="">{T('method.select')}</option>
+                        {METHODS.map((m) => (
+                          <option key={m} value={m}>{T(`method.${m}` as Parameters<typeof translate>[0])}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {tab === 'cocktail' && (
+                    <div>
+                      <label className="block text-xs font-medium text-text-secondary mb-1">{T('garnish.label')}</label>
+                      <input
+                        type="text"
+                        value={form.garnish}
+                        onChange={(e) => updateBulkForm(fi, 'garnish', e.target.value)}
+                        placeholder={T('garnish.placeholder')}
+                        className="w-full px-3 py-2.5 rounded-xl bg-bg-primary border border-border text-text-primary text-sm focus:outline-none focus:border-accent"
+                      />
+                    </div>
+                  )}
+
+                  {/* Ingredients */}
+                  <div>
+                    <label className="block text-xs font-medium text-text-secondary mb-1.5">{T('management.ingredients')}</label>
+                    <div className="space-y-1.5">
+                      {form.ingredients.map((ing, ingIdx) => (
+                        <div key={ingIdx} className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            placeholder={T('management.ingredient.name')}
+                            value={ing.name}
+                            onChange={(e) => updateBulkIngredient(fi, ingIdx, 'name', e.target.value)}
+                            className="flex-1 px-2.5 py-2 rounded-lg bg-bg-primary border border-border text-text-primary text-xs focus:outline-none focus:border-accent"
+                          />
+                          <input
+                            type="number"
+                            placeholder="0"
+                            value={ing.amount_ml}
+                            onChange={(e) => updateBulkIngredient(fi, ingIdx, 'amount_ml', e.target.value)}
+                            className="w-14 px-2 py-2 rounded-lg bg-bg-primary border border-border text-text-primary text-xs text-right focus:outline-none focus:border-accent"
+                          />
+                          <select
+                            value={ing.unit}
+                            onChange={(e) => updateBulkIngredient(fi, ingIdx, 'unit', e.target.value)}
+                            className="w-14 px-1 py-2 rounded-lg bg-bg-primary border border-border text-text-primary text-xs focus:outline-none focus:border-accent"
+                          >
+                            {UNITS.map((u) => (
+                              <option key={u} value={u}>{u}</option>
+                            ))}
+                          </select>
+                          {form.ingredients.length > 1 && (
+                            <button type="button" onClick={() => removeBulkIngredientRow(fi, ingIdx)} className="p-0.5">
+                              <X size={14} className="text-text-muted" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => addBulkIngredientRow(fi)}
+                      className="mt-1.5 text-xs text-accent hover:text-accent-hover font-medium"
+                    >
+                      {T('management.ingredient.add')}
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-text-secondary mb-1">{T('management.instructions')}</label>
+                    <textarea
+                      value={form.instructions}
+                      onChange={(e) => updateBulkForm(fi, 'instructions', e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-bg-primary border border-border text-text-primary text-sm focus:outline-none focus:border-accent resize-y min-h-16"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-text-secondary mb-1">{T('management.notes')}</label>
+                    <input
+                      type="text"
+                      value={form.notes}
+                      onChange={(e) => updateBulkForm(fi, 'notes', e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl bg-bg-primary border border-border text-text-primary text-sm focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
+
+          {/* Bottom bar */}
+          <div className="px-4 py-3 border-t border-border bg-bg-card">
+            {bulkSavedCount !== null ? (
+              <div className="flex items-center justify-center gap-2 py-2 text-success font-medium">
+                <Check size={20} />
+                {T('bulk.saved.count')} {bulkSavedCount} {tab === 'batching' ? 'batching' : 'cocktail'}
+              </div>
+            ) : (
+              <button
+                onClick={saveBulkRecipes}
+                disabled={bulkSaving || filledBulkCount === 0}
+                className="w-full py-3 rounded-xl font-medium text-white bg-accent hover:bg-accent-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {bulkSaving ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    {T('bulk.saving')}
+                  </>
+                ) : (
+                  <>
+                    {T('bulk.save.all')} {filledBulkCount > 0 && `(${filledBulkCount})`}
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
       </Modal>
 
       {/* Image Cropper */}

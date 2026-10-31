@@ -149,6 +149,14 @@ const t = {
   'garnish.label': { th: 'Garnish', en: 'Garnish', my: 'Garnish' },
   'garnish.placeholder': { th: 'เช่น มะนาว, ใบมิ้นท์', en: 'e.g. Lime, Mint leaves', my: 'ဥပမာ သံပုရာ, ပူဒီနာရွက်' },
 
+  // Bulk add
+  'bulk.add': { th: 'เพิ่มหลายสูตร', en: 'Bulk Add', my: 'အစုလိုက် ထည့်ရန်' },
+  'bulk.recipe': { th: 'สูตรที่', en: 'Recipe', my: 'ရက်စီပီ' },
+  'bulk.save.all': { th: 'บันทึกทั้งหมด', en: 'Save All', my: 'အားလုံး သိမ်းရန်' },
+  'bulk.saving': { th: 'กำลังบันทึก...', en: 'Saving...', my: 'သိမ်းနေသည်...' },
+  'bulk.saved.count': { th: 'บันทึกแล้ว', en: 'Saved', my: 'သိမ်းပြီး' },
+  'bulk.empty': { th: 'กรอกอย่างน้อย 1 สูตร', en: 'Fill at least 1 recipe', my: 'အနည်းဆုံး ရက်စီပီ 1 ခု ဖြည့်ပါ' },
+
   // Common
   'common.loading': { th: 'กำลังโหลด...', en: 'Loading...', my: 'ဖွင့်နေသည်...' },
   'common.back': { th: 'กลับ', en: 'Back', my: 'နောက်သို့' },
