@@ -130,6 +130,33 @@ export default function ManagementPage() {
     }
   }
 
+  const duplicateRecipe = async (id: string) => {
+    const recipeTable = tab === 'batching' ? 'batching_recipes' : 'cocktail_recipes'
+    const ingTable = tab === 'batching' ? 'batching_ingredients' : 'cocktail_ingredients'
+
+    const { data: recipe } = await supabase.from(recipeTable).select('*').eq('id', id).single()
+    const { data: ings } = await supabase.from(ingTable).select('*').eq('recipe_id', id).order('sort_order')
+
+    if (recipe) {
+      setEditingId(null)
+      setFormName(`${recipe.name} ${T('management.duplicate.name')}`)
+      setFormCategory(recipe.category || '')
+      setFormMethod(recipe.method || '')
+      setFormGarnish(recipe.garnish || '')
+      setFormInstructions(recipe.instructions || '')
+      setFormNotes(recipe.notes || '')
+      setFormImageUrl(recipe.image_url || null)
+      setFormIngredients(
+        (ings || []).map((i: BatchingIngredient | CocktailIngredient) => ({
+          name: i.name,
+          amount_ml: String(i.amount_ml),
+          unit: (i.unit || 'ml') as IngredientUnit,
+        }))
+      )
+      setShowForm(true)
+    }
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -438,7 +465,10 @@ export default function ManagementPage() {
                   <span className="text-xs text-accent bg-accent-light px-2 py-0.5 rounded-full">{T(`category.${r.category}` as Parameters<typeof translate>[0])}</span>
                 )}
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
+                <button onClick={() => duplicateRecipe(r.id)} className="p-2 rounded-lg hover:bg-bg-secondary" title={T('management.duplicate')}>
+                  <Copy size={15} className="text-text-muted" />
+                </button>
                 <button onClick={() => openEdit(r.id)} className="p-2 rounded-lg hover:bg-bg-secondary">
                   <Pencil size={16} className="text-text-muted" />
                 </button>

@@ -6,7 +6,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { supabase, CocktailRecipe, CocktailIngredient, CATEGORIES, RecipeCategory } from '@/lib/supabase'
 import { Lang, getLang, translate } from '@/lib/lang'
 import Modal from '@/components/Modal'
-import { ArrowLeft, Wine } from 'lucide-react'
+import { ArrowLeft, Wine, Search } from 'lucide-react'
 
 export default function CocktailsPage() {
   const [recipes, setRecipes] = useState<CocktailRecipe[]>([])
@@ -15,6 +15,7 @@ export default function CocktailsPage() {
   const [loading, setLoading] = useState(true)
   const [lang, setLang] = useState<Lang>('th')
   const [filterCategory, setFilterCategory] = useState<RecipeCategory | 'all'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const router = useRouter()
 
   const T = (key: Parameters<typeof translate>[0]) => translate(key, lang)
@@ -52,9 +53,19 @@ export default function CocktailsPage() {
         </div>
       </header>
 
-      {/* Category Filter */}
+      {/* Search + Category Filter */}
       {!loading && recipes.length > 0 && (
-        <div className="max-w-lg mx-auto px-4 pt-4">
+        <div className="max-w-lg mx-auto px-4 pt-4 space-y-3">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={T('search.placeholder')}
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-bg-card border border-border text-text-primary text-sm focus:outline-none focus:border-accent"
+            />
+          </div>
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <button
               onClick={() => setFilterCategory('all')}
@@ -85,7 +96,10 @@ export default function CocktailsPage() {
         ) : recipes.length === 0 ? (
           <p className="text-center text-text-muted py-8">{T('batching.empty')}</p>
         ) : (
-          recipes.filter((r) => filterCategory === 'all' || r.category === filterCategory || (filterCategory === 'other' && !r.category)).map((r) => (
+          recipes
+            .filter((r) => filterCategory === 'all' || r.category === filterCategory || (filterCategory === 'other' && !r.category))
+            .filter((r) => !searchQuery.trim() || r.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+            .map((r) => (
             <button
               key={r.id}
               onClick={() => openRecipe(r)}

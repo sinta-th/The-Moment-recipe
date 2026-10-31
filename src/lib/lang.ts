@@ -149,6 +149,13 @@ const t = {
   'garnish.label': { th: 'Garnish', en: 'Garnish', my: 'Garnish' },
   'garnish.placeholder': { th: 'เช่น มะนาว, ใบมิ้นท์', en: 'e.g. Lime, Mint leaves', my: 'ဥပမာ သံပုရာ, ပူဒီနာရွက်' },
 
+  // Search
+  'search.placeholder': { th: 'ค้นหาสูตร...', en: 'Search recipes...', my: 'ရက်စီပီ ရှာရန်...' },
+
+  // Duplicate
+  'management.duplicate': { th: 'สำเนา', en: 'Duplicate', my: 'ကူးယူရန်' },
+  'management.duplicate.name': { th: '(สำเนา)', en: '(Copy)', my: '(မိတ္တူ)' },
+
   // Bulk add
   'bulk.add': { th: 'เพิ่มหลายสูตร', en: 'Bulk Add', my: 'အစုလိုက် ထည့်ရန်' },
   'bulk.recipe': { th: 'สูตรที่', en: 'Recipe', my: 'ရက်စီပီ' },
