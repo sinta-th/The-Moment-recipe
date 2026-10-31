@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getCurrentUser, isHost } from '@/lib/auth'
-import { supabase, BatchingRecipe, CocktailRecipe, BatchingIngredient, CocktailIngredient, CATEGORIES, RecipeCategory, UNITS, IngredientUnit } from '@/lib/supabase'
+import { supabase, BatchingRecipe, CocktailRecipe, BatchingIngredient, CocktailIngredient, CATEGORIES, RecipeCategory, UNITS, IngredientUnit, METHODS, RecipeMethod } from '@/lib/supabase'
 import { Lang, getLang, translate } from '@/lib/lang'
 import Modal from '@/components/Modal'
 import ImageCropper from '@/components/ImageCropper'
@@ -32,6 +32,8 @@ export default function ManagementPage() {
   const [formNotes, setFormNotes] = useState('')
   const [formIngredients, setFormIngredients] = useState<IngredientInput[]>([{ name: '', amount_ml: '', unit: 'ml' }])
   const [formCategory, setFormCategory] = useState<RecipeCategory | ''>('')
+  const [formMethod, setFormMethod] = useState<RecipeMethod | ''>('')
+  const [formGarnish, setFormGarnish] = useState('')
   const [formImageUrl, setFormImageUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [imageError, setImageError] = useState('')
@@ -63,6 +65,8 @@ export default function ManagementPage() {
   const resetForm = () => {
     setFormName('')
     setFormCategory('')
+    setFormMethod('')
+    setFormGarnish('')
     setFormInstructions('')
     setFormNotes('')
     setFormIngredients([{ name: '', amount_ml: '', unit: 'ml' }])
@@ -83,6 +87,8 @@ export default function ManagementPage() {
       setEditingId(id)
       setFormName(recipe.name)
       setFormCategory(recipe.category || '')
+      setFormMethod(recipe.method || '')
+      setFormGarnish(recipe.garnish || '')
       setFormInstructions(recipe.instructions || '')
       setFormNotes(recipe.notes || '')
       setFormImageUrl(recipe.image_url || null)
@@ -153,13 +159,19 @@ export default function ManagementPage() {
     const recipeTable = tab === 'batching' ? 'batching_recipes' : 'cocktail_recipes'
     const ingTable = tab === 'batching' ? 'batching_ingredients' : 'cocktail_ingredients'
 
-    const recipeData = {
+    const recipeData: Record<string, unknown> = {
       name: formName.trim(),
       image_url: formImageUrl,
       category: formCategory || null,
+      method: formMethod || null,
       instructions: formInstructions.trim() || null,
       notes: formNotes.trim() || null,
       updated_at: new Date().toISOString(),
+    }
+
+    // garnish only for cocktail
+    if (tab === 'cocktail') {
+      recipeData.garnish = formGarnish.trim() || null
     }
 
     let recipeId = editingId
@@ -380,6 +392,35 @@ export default function ManagementPage() {
               ))}
             </select>
           </div>
+
+          {/* Method */}
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1">{T('method.label')}</label>
+            <select
+              value={formMethod}
+              onChange={(e) => setFormMethod(e.target.value as RecipeMethod | '')}
+              className="w-full px-4 py-3 rounded-xl bg-bg-primary border border-border text-text-primary focus:outline-none focus:border-accent"
+            >
+              <option value="">{T('method.select')}</option>
+              {METHODS.map((m) => (
+                <option key={m} value={m}>{T(`method.${m}` as Parameters<typeof translate>[0])}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Garnish - only for cocktail */}
+          {tab === 'cocktail' && (
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-1">{T('garnish.label')}</label>
+              <input
+                type="text"
+                value={formGarnish}
+                onChange={(e) => setFormGarnish(e.target.value)}
+                placeholder={T('garnish.placeholder')}
+                className="w-full px-4 py-3 rounded-xl bg-bg-primary border border-border text-text-primary focus:outline-none focus:border-accent"
+              />
+            </div>
+          )}
 
           {/* Ingredients */}
           <div>

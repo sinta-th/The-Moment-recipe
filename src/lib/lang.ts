@@ -137,6 +137,18 @@ const t = {
   'category.other': { th: 'Other', en: 'Other', my: 'အခြား' },
   'category.select': { th: '-- เลือกหมวดหมู่ --', en: '-- Select category --', my: '-- အမျိုးအစား ရွေးရန် --' },
 
+  // Method
+  'method.label': { th: 'Method', en: 'Method', my: 'Method' },
+  'method.select': { th: '-- เลือก Method --', en: '-- Select method --', my: '-- Method ရွေးရန် --' },
+  'method.shake': { th: 'Shake', en: 'Shake', my: 'Shake' },
+  'method.stir': { th: 'Stir', en: 'Stir', my: 'Stir' },
+  'method.build': { th: 'Build', en: 'Build', my: 'Build' },
+  'method.blending': { th: 'Blending', en: 'Blending', my: 'Blending' },
+
+  // Garnish
+  'garnish.label': { th: 'Garnish', en: 'Garnish', my: 'Garnish' },
+  'garnish.placeholder': { th: 'เช่น มะนาว, ใบมิ้นท์', en: 'e.g. Lime, Mint leaves', my: 'ဥပမာ သံပုရာ, ပူဒီနာရွက်' },
+
   // Common
   'common.loading': { th: 'กำลังโหลด...', en: 'Loading...', my: 'ဖွင့်နေသည်...' },
   'common.back': { th: 'กลับ', en: 'Back', my: 'နောက်သို့' },

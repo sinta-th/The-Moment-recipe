@@ -30,6 +30,7 @@ export interface BatchingRecipe {
   name: string
   image_url: string | null
   category: RecipeCategory | null
+  method: RecipeMethod | null
   instructions: string | null
   notes: string | null
   created_at: string
@@ -40,6 +41,10 @@ export interface BatchingRecipe {
 export type IngredientUnit = 'ml' | 'g' | 'pcs' | 'top'
 
 export const UNITS: IngredientUnit[] = ['ml', 'g', 'pcs', 'top']
+
+export type RecipeMethod = 'shake' | 'stir' | 'build' | 'blending'
+
+export const METHODS: RecipeMethod[] = ['shake', 'stir', 'build', 'blending']
 
 export interface BatchingIngredient {
   id: string
@@ -55,6 +60,8 @@ export interface CocktailRecipe {
   name: string
   image_url: string | null
   category: RecipeCategory | null
+  method: RecipeMethod | null
+  garnish: string | null
   instructions: string | null
   notes: string | null
   created_at: string

@@ -118,6 +118,16 @@ export default function BatchingPage() {
             {selected.image_url && (
               <img src={selected.image_url} alt={selected.name} className="w-full h-48 object-cover rounded-xl" />
             )}
+
+            {/* Method badge */}
+            {selected.method && (
+              <div>
+                <span className="inline-flex items-center gap-1.5 text-sm bg-accent-light text-accent px-3 py-1.5 rounded-full font-medium">
+                  🍸 {T(`method.${selected.method}` as Parameters<typeof translate>[0])}
+                </span>
+              </div>
+            )}
+
             <div>
               <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">{T('batching.ingredients')}</h3>
               <div className="space-y-2">
